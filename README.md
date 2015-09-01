@@ -9,6 +9,7 @@ I would also suggest read this [article](http://www.christianalfoni.com/articles
 
 # Example
 ```javascript
+window.history = undefined;
 import {run, Rx} from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {makeRouterDriver} from 'cycle-router';
@@ -16,8 +17,16 @@ import {makeRouterDriver} from 'cycle-router';
 let Routes = {
   "authors": "/authors",
   "books": "/books",
-  "books.view": "/books/view/:bookId"
+  "books.view": "/books/view/:bookId",
+  "books.view.chapter": "/books/view/:bookId/chapter/:chapterNum"
 }
+
+let Handlers = {
+  "authors": () => "Authors",
+  "books": () => "Books",
+  "books.view": ({bookId}) => `BookId: ${bookId}`,
+  "books.view.chapter": ({bookId, chapterNum}) => `BookId: ${bookId}, Chapter: ${chapterNum}`
+};
 
 function createView(text) {
   return h('div', [
@@ -31,35 +40,35 @@ function createView(text) {
   ]);
 }
 
+function HelloWorld() {
+  return "Hello, World!";
+}
+
 function main({DOM, Router}) {
+  Router
+    .addRoutes(Routes)
+    .addRoute('home', '/')
+    .addHandlers(Handlers)
+    .addHandler('home', HelloWorld);
 
   let currentRoute$ = DOM.select('a').events('click')
-    .map(event => event.target.href)
+    .map((event) => {
+      return event.target.href;
+    })
     .startWith(location.href)
     .map(route => route)
 
-  let text$ = new Rx.Subject();
-  Router
-    .addRoutes(Routes)
-    .addRoute("books.view.chapter", "/books/view/:bookId/chapter/:chapterNum")
-    .on("authors", () => {
-      text$.onNext("Authors");
-    })
-    .on("books", () => {
-      text$.onNext("Books");
-    })
-    .on("books.view", ({bookId}) => {
-      text$.onNext(`BookId: ${bookId}`);
-    })
-    .on("books.view.chapter", ({bookId, chapterNum}) => {
-      text$.onNext(`BookId: ${bookId}, Chapter: ${chapterNum}`);
-    });
-
-  let view$ = text$.map(
-    (text) => {
-      return createView(text);
+  let view$ = Rx.Observable.combineLatest(
+    Router.params$,
+    Router.handlers$,
+    (params, handler) => {
+      if (handler) {
+        return createView(handler(params));
+      }
+      return createView("Page can not be found");
     }
-  );
+  )
+
 
   return {
     DOM: view$,
@@ -130,4 +139,10 @@ run(main, drivers);
 
   ```javascript
   Router.params$.map((params) => {...});
+  ```
+#### `handlers$`
+  This is an observable which emits the register handler to the current route if present
+
+  ```javascript
+    Router.handler$((handlerFn) => handlerFn());
   ```
