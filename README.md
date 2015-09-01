@@ -2,6 +2,9 @@
 
 This is a router driver for cycle.js
 
+# Installation
+`npm install cycle-router`
+
 # Example
 ```javascript
 import {run, Rx} from '@cycle/core';
