@@ -63,7 +63,6 @@ function sameOrigin(href) {
 }
 
 function onclick(e) {
-
   if (1 !== which(e)) return;
 
   if (e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -137,7 +136,9 @@ class Router {
     } else {
       let click$ = stealLinks();
       click$.subscribe((link) => {
-        self.setRoute(link);
+        if (link !== undefined) {
+          self.setRoute(link);
+        }
       })
     }
 
@@ -209,7 +210,7 @@ class Router {
     if (supportsHistoryAPI() && this.options.hashBang === false) {
       addressbar.value = pathname;
     } else {
-      window.location.hash = "#!" + pathname;
+      location.href = "/#!" + pathname;
     }
 
     let route = findMatchingRoute(this.routes, pathname);
