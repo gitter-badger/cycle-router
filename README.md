@@ -10,7 +10,6 @@ I would also suggest read this [article](http://www.christianalfoni.com/articles
 
 # Example
 ```javascript
-window.history = undefined;
 import {run, Rx} from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {makeRouterDriver} from 'cycle-router';
@@ -53,11 +52,9 @@ function main({DOM, Router}) {
     .addHandler('home', HelloWorld);
 
   let currentRoute$ = DOM.select('a').events('click')
-    .map((event) => {
-      return event.target.href;
-    })
+    .map(event => event.target.href)
     .startWith(location.href)
-    .map(route => route)
+    .map(route => route);
 
   let view$ = Rx.Observable.combineLatest(
     Router.params$,
@@ -68,7 +65,7 @@ function main({DOM, Router}) {
       }
       return createView("Page can not be found");
     }
-  )
+  );
 
 
   return {
