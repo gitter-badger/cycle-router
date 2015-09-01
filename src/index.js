@@ -33,7 +33,7 @@ function asRegex(route) {
 }
 
 function getPath(url) {
-  let path = url.replace(window.location.origin, '').replace('/#', '').replace('#', '').split('');
+  let path = url.replace(window.location.origin, '').replace('/#!', '').replace('#!', '').split('');
 
   if (path.length > 1 && path[path.length - 1] === '/') {
     path.pop();
@@ -43,22 +43,104 @@ function getPath(url) {
   return path;
 }
 
+function supportsHistoryAPI() {
+  if (window.history && window.history.pushState) {
+    return true;
+  }
+
+  return false;
+}
+
+function which(e) {
+  e = e || window.event;
+  return null === e.which ? e.button : e.which;
+}
+
+function sameOrigin(href) {
+  var origin = location.protocol + '//' + location.hostname;
+  if (location.port) origin += ':' + location.port;
+  return (href && (0 === href.indexOf(origin)));
+}
+
+function onclick(e) {
+  console.log(e);
+
+  if (1 !== which(e)) return;
+
+  if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+  if (e.defaultPrevented) return;
+
+  // ensure link
+  var el = e.target;
+  while (el && 'A' !== el.nodeName) el = el.parentNode;
+  if (!el || 'A' !== el.nodeName) return;
+
+  // Ignore if tag has
+  // 1. "download" attribute
+  // 2. rel="external" attribute
+  if (el.hasAttribute('download') || el.getAttribute('rel') === 'external') return;
+
+  // ensure non-hash for the same path
+  var link = el.getAttribute('href');
+  if (el.pathname === location.pathname && (el.hash || '#' === link)) return;
+
+  // Check for mailto: in the href
+  if (link && link.indexOf('mailto:') > -1) return;
+
+  // check target
+  if (el.target) return;
+
+  // x-origin
+  if (!sameOrigin(el.href)) return;
+
+
+  // rebuild path
+  var path = el.pathname + el.search + (el.hash || '');
+
+  // strip leading "/[drive letter]:" on NW.js on Windows
+  if (typeof process !== 'undefined' && path.match(/^\/[a-zA-Z]:\//)) {
+    path = path.replace(/^\/[a-zA-Z]:\//, '/');
+  }
+
+  // All good
+  e.preventDefault();
+  return path;
+}
+
+function stealLinks() {
+  var clickEvent = ('undefined' !== typeof document) && document.ontouchstart ? 'touchstart' : 'click';
+  return Rx.Observable.fromEvent(document, clickEvent)
+    .map(onclick);
+}
+
 class Router {
 
-  constructor() {
+  constructor(options) {
+    this.options = options || {
+      hashBang: false
+    }
     this.routes = {};
     this.subjects = {};
+    this.handlers = {};
 
     // Catch All to subscribe to all params objects
     this.params$ = new Rx.ReplaySubject(1);
+    this.handlers$ = new Rx.ReplaySubject(1);
 
     let self = this;
-    // Also handle route changes on 'normal' links
-    addressbar.addEventListener('change', function(event) {
-      // Don't handle links normally
-      event.preventDefault();
-      self.setRoute(event.target.value);
-    });
+    if (supportsHistoryAPI() && this.options.hashBang === false) {
+      // Also handle route changes on 'normal' link
+      addressbar.addEventListener('change', function(event) {
+        // Don't handle links normally
+        event.preventDefault();
+        self.setRoute(event.target.value);
+      });
+    } else {
+      let click$ = stealLinks();
+      click$.subscribe((link) => {
+        self.setRoute(link);
+      })
+    }
 
     // Should probably find a better way to support a 'notFound' route
     this.addRoute("notFound", "/ThisRouteDefinitelyIsNotFound");
@@ -100,6 +182,19 @@ class Router {
     return this;
   }
 
+  addHandlers(handlers) {
+    let self = this;
+    Object.keys(handlers).forEach(function(handlerName) {
+      self.addHandler(handlerName, handlers[handlerName]);
+    })
+    return this;
+  }
+
+  addHandler(name, handlerFn) {
+    this.handlers[name] = handlerFn;
+    return this;
+  }
+
   /* Set the route
   **
   ** When set the route in the addressbar/omnibox
@@ -112,9 +207,15 @@ class Router {
   */
   setRoute(path) {
     let pathname = getPath(path);
-    addressbar.value = pathname;
+    if (supportsHistoryAPI()) {
+      addressbar.value = pathname;
+    } else {
+      window.location.hash = "#!" + pathname;
+    }
+
     let route = findMatchingRoute(this.routes, pathname);
     let self = this;
+
     if (route !== null && route !== undefined && route !== window.location.href) {
       let params = parseParams(route, pathname);
       self.routes[route](params);
@@ -123,31 +224,25 @@ class Router {
     }
   }
 
-  /* Listen for params object fo a given route name
-  **
-  ** Router.on('home', (params) => {
-  **  console.log(params) ->  {userId: 122}
-  **  ...do something...
-  ** })
-  */
-  on(name, handlerFn) {
-    this.subjects[name].subscribe(handlerFn);
-    return this;
-  }
-
-  /* Emits newest params object to corresponding routes
-  ** Also emits to params$
-  **
-  **
+  /* Emits newest params object
+  ** Also emits the handler function
+  ** if one is associated with current route
   */
   emit(name, data) {
-    this.subjects[name].onNext(data);
     this.params$.onNext(data);
+
+    let handler = this.handlers[name];
+
+    if (handler !== null && handler !== undefined) {
+      this.handlers$.onNext(handler);
+    } else {
+      this.handlers$.onNext(undefined);
+    }
   }
 }
 
-function makeRouterDriver() {
-  let router = new Router();
+function makeRouterDriver(options) {
+  let router = new Router(options);
 
   // Takes an observable with the route you would like to set
   // Returns Router instance
