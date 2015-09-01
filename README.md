@@ -120,7 +120,7 @@ run(main, drivers);
 
 #### Properties
 
-####`params$`
+#### `params$`
   This is an observable which emits an object with any parameters defined on the current route
 
   ```javascript
