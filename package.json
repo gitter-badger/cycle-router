@@ -1,6 +1,6 @@
 {
   "name": "cycle-router",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "Cycle.js Driver for reactive-router",
   "main": "lib/index.js",
   "scripts": {
