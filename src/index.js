@@ -63,7 +63,6 @@ function sameOrigin(href) {
 }
 
 function onclick(e) {
-  console.log(e);
 
   if (1 !== which(e)) return;
 
@@ -128,7 +127,7 @@ class Router {
     this.handlers$ = new Rx.ReplaySubject(1);
 
     let self = this;
-    if (supportsHistoryAPI() && this.options.hashBang === false) {
+    if (supportsHistoryAPI() && options.hashBang === false) {
       // Also handle route changes on 'normal' link
       addressbar.addEventListener('change', function(event) {
         // Don't handle links normally
@@ -207,7 +206,7 @@ class Router {
   */
   setRoute(path) {
     let pathname = getPath(path);
-    if (supportsHistoryAPI()) {
+    if (supportsHistoryAPI() && this.options.hashBang === false) {
       addressbar.value = pathname;
     } else {
       window.location.hash = "#!" + pathname;
