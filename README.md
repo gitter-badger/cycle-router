@@ -1,8 +1,9 @@
 # Cycle-Router
 
-This is a router driver for cycle.js built using the [addressbar](https://github.com/christianalfoni/addressbar) library.
+This is a router driver for cycle.js built using the [addressbar](https://github.com/christianalfoni/addressbar) library. However if your browser does not support the history api it will switch to hashBang mode.
 
 I would also suggest read this [article](http://www.christianalfoni.com/articles/2015_08_20_What-if-the-adddressbar-worked-like-an-input) or watching this [video](https://www.youtube.com/watch?v=W5U-NryY0Ns). They are both by the author of addressbar and have some really awesome ideas about routing, and are what I'm trying to make use of in this driver.
+
 
 # Installation
 `npm install cycle-router`
@@ -78,7 +79,9 @@ function main({DOM, Router}) {
 
 let drivers = {
   DOM: makeDOMDriver('.app'),
-  Router: makeRouterDriver()
+  Router: makeRouterDriver({
+    hashBang: false // Default Behavior
+  })
 }
 
 run(main, drivers);
@@ -89,6 +92,9 @@ run(main, drivers);
 ## Driver
 
 ### ```makeRouterDriver()```
+
+###### Args
+  hashBang: true|false (default: false)
 
 ###### Return
 
