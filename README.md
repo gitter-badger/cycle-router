@@ -1,5 +1,7 @@
 # Cycle-Router
 
+[![Join the chat at https://gitter.im/TylorS/cycle-router](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/TylorS/cycle-router?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This is a router driver for cycle.js built using the [addressbar](https://github.com/christianalfoni/addressbar) library. However if your browser does not support the history api it will switch to hashBang mode.
 
 I would also suggest read this [article](http://www.christianalfoni.com/articles/2015_08_20_What-if-the-adddressbar-worked-like-an-input) or watching this [video](https://www.youtube.com/watch?v=W5U-NryY0Ns). They are both by the author of addressbar and have some really awesome ideas about routing, and are what I'm trying to make use of in this driver.
